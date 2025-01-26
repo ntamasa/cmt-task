@@ -3,14 +3,28 @@ import { data } from "../../assets/fieldData";
 import { FieldDataType } from "../../assets/fieldDataType";
 import { Field } from "../../assets/Field";
 
-const initialState = {
+const initialState: {
+  status: string;
+  lines: { x: number; y: number }[][][];
+  currentCharIndex: number;
+  field: Field[][];
+  message: string;
+  isFinished: boolean;
+} = {
   status: "starting", // starting, playing, finished
-  lines: 0,
+  lines: [[], [], [], []], // hor, ver, diag-inc, diag-dec
   currentCharIndex: 0,
   field: data,
   message: "",
   isFinished: false,
 };
+
+const DIRECTIONS = [
+  { dx: 0, dy: 1 }, // horizontal
+  { dx: 1, dy: 0 }, // vertical
+  { dx: 1, dy: -1 }, // diagonal up-right and down-left
+  { dx: 1, dy: 1 }, // diagonal up-left and down-right
+];
 
 const CHARACTERS = [
   { data: FieldDataType.OCCUPIED_C, color: "green" },
@@ -25,7 +39,6 @@ const gameSlice = createSlice({
     init() {
       return initialState;
     },
-    // TODO store existing lines separately, and check them separately
     setField(state, action) {
       if (state.status !== "playing") state.status = "playing";
 
@@ -46,14 +59,8 @@ const gameSlice = createSlice({
 
       // check if new horizontal line was created
       const { x, y } = coords;
-      const directions = [
-        { dx: 0, dy: 1 }, // horizontal
-        { dx: 1, dy: 0 }, // vertical
-        { dx: 1, dy: -1 }, // diagonal up-right and down-left
-        { dx: 1, dy: 1 }, // diagonal up-left and down-right
-      ];
 
-      directions.forEach(({ dx, dy }) => {
+      DIRECTIONS.forEach(({ dx, dy }, i) => {
         let count = 1;
         const currLineCoords = [{ x, y }];
 
@@ -63,15 +70,16 @@ const gameSlice = createSlice({
           const ny = y + i * dy;
 
           if (
-            nx >= 0 &&
-            nx < 5 &&
-            ny >= 0 &&
-            ny < 5 &&
-            state.field[nx][ny].content === currentChar.data
-          ) {
-            currLineCoords.unshift({ x: nx, y: ny });
-            count++;
-          } else break;
+            nx < 0 ||
+            nx >= 5 ||
+            ny < 0 ||
+            ny >= 5 ||
+            state.field[nx][ny].content !== currentChar.data
+          )
+            break;
+
+          currLineCoords.push({ x: nx, y: ny });
+          count++;
         }
 
         for (let i = 1; i < 5; i++) {
@@ -79,15 +87,16 @@ const gameSlice = createSlice({
           const ny = y - i * dy;
 
           if (
-            nx >= 0 &&
-            nx < 5 &&
-            ny >= 0 &&
-            ny < 5 &&
-            state.field[nx][ny].content === currentChar.data
-          ) {
-            currLineCoords.push({ x: nx, y: ny });
-            count++;
-          } else break;
+            nx < 0 ||
+            nx >= 5 ||
+            ny < 0 ||
+            ny >= 5 ||
+            state.field[nx][ny].content !== currentChar.data
+          )
+            break;
+
+          currLineCoords.unshift({ x: nx, y: ny });
+          count++;
         }
 
         // if line is long enough
@@ -96,9 +105,17 @@ const gameSlice = createSlice({
           if (
             currLineCoords.every(
               (node) => state.field[node.x][node.y].color === "black",
+            ) ||
+            // or it isn't an already existing line's part
+            !state.lines[i].some((line) =>
+              line.some((node) =>
+                currLineCoords.some(
+                  (coord) => coord.x === node.x && coord.y === node.y,
+                ),
+              ),
             )
           )
-            state.lines++; // increment the number of lines
+            state.lines[i].push(currLineCoords);
 
           // change color of the line
           currLineCoords.forEach((node) => {
@@ -116,10 +133,14 @@ const gameSlice = createSlice({
         state.status = "finished";
     },
     finish(state) {
+      const linesCount = state.lines.reduce(
+        (acc, lines) => acc + lines.length,
+        0,
+      );
       state.status = "finished";
 
-      if (state.lines === 0) state.message = "You have no lines, try again!";
-      else state.message = `Congratulations, you have ${state.lines} lines!`;
+      if (linesCount === 0) state.message = "You have no lines, try again!";
+      else state.message = `Congratulations, you have ${linesCount} lines!`;
     },
   },
 });
