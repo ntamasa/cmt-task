@@ -28,4 +28,4 @@ Instructions to start the application:
    ```bash
    npm run dev
    ```
-2. Open your browser and navigate to `http://localhost:5173`
+2. Open your browser and navigate to `http://localhost:8080`
