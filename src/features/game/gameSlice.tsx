@@ -2,6 +2,7 @@ import { createSlice } from "@reduxjs/toolkit";
 import { data } from "../../assets/fieldData";
 import { FieldDataType } from "../../assets/fieldDataType";
 import { Field } from "../../assets/Field";
+import { searchForLines } from "../../utils/searchForLines";
 
 const initialState: {
   status: string;
@@ -45,6 +46,7 @@ const gameSlice = createSlice({
       const currentChar = CHARACTERS[state.currentCharIndex];
       let coords = { x: 0, y: 0 };
 
+      // change cell content to the next in line
       state.field.map((row: Field[], x: number) =>
         row.map((cell, y: number) => {
           if (cell.id === action.payload) {
@@ -54,74 +56,85 @@ const gameSlice = createSlice({
         }),
       );
 
+      // move index to the next character
       state.currentCharIndex =
         state.currentCharIndex > 1 ? 0 : state.currentCharIndex + 1;
 
-      // check if new horizontal line was created
+      // check if new line was created,
       const { x, y } = coords;
-
       DIRECTIONS.forEach(({ dx, dy }, i) => {
         let count = 1;
-        const currLineCoords = [{ x, y }];
+        let currLineCoords = [{ x, y }];
 
         // positive direction
-        for (let i = 1; i < 5; i++) {
-          const nx = x + i * dx;
-          const ny = y + i * dy;
+        [currLineCoords, count] = searchForLines(
+          coords,
+          { dx, dy },
+          currentChar,
+          state.field,
+          currLineCoords,
+          count,
+          "inc",
+        );
 
-          if (
-            nx < 0 ||
-            nx >= 5 ||
-            ny < 0 ||
-            ny >= 5 ||
-            state.field[nx][ny].content !== currentChar.data
-          )
-            break;
+        // negative direction
+        [currLineCoords, count] = searchForLines(
+          coords,
+          { dx, dy },
+          currentChar,
+          state.field,
+          currLineCoords,
+          count,
+          "dec",
+        );
 
-          currLineCoords.push({ x: nx, y: ny });
-          count++;
-        }
+        // if line is not long enough
+        if (count < 3) return;
 
-        for (let i = 1; i < 5; i++) {
-          const nx = x - i * dx;
-          const ny = y - i * dy;
-
-          if (
-            nx < 0 ||
-            nx >= 5 ||
-            ny < 0 ||
-            ny >= 5 ||
-            state.field[nx][ny].content !== currentChar.data
-          )
-            break;
-
-          currLineCoords.unshift({ x: nx, y: ny });
-          count++;
-        }
-
-        // if line is long enough
-        if (count >= 3) {
-          // and it isn't connected to an already existing line
-          if (
-            currLineCoords.every(
-              (node) => state.field[node.x][node.y].color === "black",
-            ) ||
-            // or it isn't an already existing line's part
-            !state.lines[i].some((line) =>
-              line.some((node) =>
-                currLineCoords.some(
-                  (coord) => coord.x === node.x && coord.y === node.y,
-                ),
+        // if it's a new line
+        if (
+          currLineCoords.every(
+            (node) => state.field[node.x][node.y].color === "black",
+          ) ||
+          // or it isn't an already existing line's part (one node can be part of multiple lines)
+          !state.lines[i].some((line) =>
+            line.some((node) =>
+              currLineCoords.some(
+                (coord) => coord.x === node.x && coord.y === node.y,
               ),
-            )
+            ),
           )
-            state.lines[i].push(currLineCoords);
+        )
+          state.lines[i].push(currLineCoords);
 
-          // change color of the line
-          currLineCoords.forEach((node) => {
-            state.field[node.x][node.y].color = currentChar.color;
-          });
-        }
+        // change color of the line, and update stored line with new node
+        currLineCoords.forEach((node) => {
+          state.field[node.x][node.y].color = currentChar.color;
+        });
+
+        // update lines if new line is connected to an existing one
+        const existingLineIndex = state.lines[i].findIndex((line) =>
+          line.some((node) =>
+            currLineCoords.some(
+              (coord) => coord.x === node.x && coord.y === node.y,
+            ),
+          ),
+        );
+
+        if (existingLineIndex === -1) return;
+
+        // update line with new nodes
+        const existingLine = state.lines[i][existingLineIndex];
+        const updatedLine = [
+          ...existingLine,
+          ...currLineCoords.filter(
+            (coord) =>
+              !existingLine.some(
+                (node) => node.x === coord.x && node.y === coord.y,
+              ),
+          ),
+        ];
+        state.lines[i][existingLineIndex] = updatedLine;
       });
 
       // if every cell is used, finish the game
@@ -133,6 +146,7 @@ const gameSlice = createSlice({
         state.status = "finished";
     },
     finish(state) {
+      // derive number of lines from lines array
       const linesCount = state.lines.reduce(
         (acc, lines) => acc + lines.length,
         0,
