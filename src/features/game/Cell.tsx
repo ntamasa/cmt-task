@@ -18,7 +18,10 @@ export const Cell = ({ cell }: CellProps) => {
 
   return (
     <td
-      className={`h-10 w-10 cursor-pointer border border-black text-center font-semibold ${cell.content && "cursor-pointer"} text-${cell.color}${cell.color !== "black" ? "-500" : ""}`}
+      className="h-10 w-10 cursor-pointer border border-black text-center font-semibold"
+      style={{
+        color: cell.color === "black" ? "transparent" : cell.color,
+      }}
       onClick={handleClick}
     >
       {cell.content}

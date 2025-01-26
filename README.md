@@ -1,3 +1,8 @@
+### Requirements
+
+- npm
+- Node.js
+
 ### Installation
 
 Step-by-step guide to install the application:
