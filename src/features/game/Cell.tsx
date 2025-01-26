@@ -20,7 +20,7 @@ export const Cell = ({ cell }: CellProps) => {
     <td
       className="h-10 w-10 cursor-pointer border border-black text-center font-semibold"
       style={{
-        color: cell.color === "black" ? "transparent" : cell.color,
+        color: cell.color,
       }}
       onClick={handleClick}
     >
