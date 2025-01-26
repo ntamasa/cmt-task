@@ -1,16 +1,18 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { init } from "./gameSlice";
+import { finish, init } from "./gameSlice";
 import { Cell } from "./Cell";
 import { Field } from "../../assets/Field";
 
 export const Board = () => {
   const dispatch = useDispatch();
-  const { field } = useSelector((store: any) => store.game);
+  const { status, field } = useSelector((store: any) => store.game);
 
   useEffect(() => {
-    dispatch(init());
-  }, [dispatch]);
+    if (status === "starting") dispatch(init());
+
+    if (status === "finished") dispatch(finish());
+  }, [dispatch, status, field]);
 
   return (
     <table className="mx-auto">

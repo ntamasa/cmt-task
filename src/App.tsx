@@ -10,16 +10,16 @@ function App() {
   const { status, message } = useSelector((store: any) => store.game);
 
   return (
-    <main className="mx-auto">
+    <main className="flex h-screen flex-col items-center justify-center">
       {status === "starting" && (
-        <Message styles={["mb-10"]}>Game is starting...</Message>
+        <Message styles={"mb-10"}>Game is starting...</Message>
       )}
       {status === "playing" && (
-        <Message styles={["mb-10"]}>
+        <Message styles={"mb-10"}>
           Score points by creating lines, horizontally, vertically or diagonally
         </Message>
       )}
-      {status === "finished" && <Message styles={["mb-10"]}>{message}</Message>}
+      {status === "finished" && <Message styles={"mb-10"}>{message}</Message>}
 
       <Board />
       <Button onClick={() => dispatch(init())}>Click me</Button>

@@ -1,10 +1,10 @@
 interface ButtonProps {
   children: React.ReactNode;
   onClick: () => void;
-  styles?: string[];
+  styles?: string;
 }
 
-function Button({ children, onClick, styles = [] }: ButtonProps) {
+function Button({ children, onClick, styles = "" }: ButtonProps) {
   const handleClick = () => {
     onClick();
   };
@@ -13,7 +13,7 @@ function Button({ children, onClick, styles = [] }: ButtonProps) {
     <button
       className={
         "mt-10 cursor-pointer rounded-md border px-5 py-2 text-center shadow-md " +
-        styles.join(" ")
+        styles
       }
       onClick={handleClick}
     >
